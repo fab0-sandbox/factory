@@ -1,0 +1,81 @@
+# The sandbox's factory: REBUILD.md's worked example, run with `fab0 run <story> --here` (B.5b).
+# A Story becomes a Requirement, then a backend spec and, when the Story has the `ui` label, a frontend spec.
+# The plan turns the specs into Tasks; each Task is implemented in its repo and reviewed there.
+version: 1
+github: {owner: fab0-sandbox, home: fab0-sandbox/factory, project: 1}
+
+repos:
+  home:     {github: fab0-sandbox/factory}
+  backend:  {github: fab0-sandbox/backend}
+  frontend: {github: fab0-sandbox/frontend}
+
+# One person plays every role in the sandbox.
+people:
+  po:      [eugenefurs]
+  backend: [eugenefurs]
+  web:     [eugenefurs]
+
+runners:
+  cloud:  {kind: routine, as: assignee}              # under --here, routine steps run on this machine
+  laptop: {kind: local, as: eugenefurs, mode: interactive}   # taken in a terminal with `fab0 take`
+
+models: {deep: opus, balanced: sonnet, fast: haiku}
+defaults: {runner: cloud, model: balanced, retries: 1, timeout: 45m}
+
+artifacts:
+  story:         {issue: Story}
+  requirement:   {issue: Requirement, under: story}
+  backend-spec:  {file: {repo: backend,  path: "docs/specs/{run}.md"}}
+  frontend-spec: {file: {repo: frontend, path: "docs/specs/{run}.md"}}
+  task:          {issue: Task, under: story, many: true}
+  change:        {pr: {repo: "{task.repo}"}}
+
+steps:
+  requirement:
+    on: {made: story}
+    repo: home
+    skill: requirement-writer
+    model: deep
+    makes: requirement
+    approve: {by: po, via: field}       # the po sets the Requirement's Status to Approved or Rejected
+
+  backend-spec:
+    on: {approved: requirement}
+    repo: backend
+    skill: spec-writer
+    makes: backend-spec
+    approve: {by: backend, via: merge}
+
+  frontend-spec:
+    on: {approved: requirement}
+    if: {label: ui}
+    repo: frontend
+    skill: spec-writer
+    runner: laptop
+    makes: frontend-spec
+    approve: {by: web, via: merge}
+
+  plan:
+    on: [{approved: backend-spec}, {approved: frontend-spec}]
+    repo: home
+    skill: task-planner
+    makes: task
+    approve: {by: po, via: field}
+
+  implement:
+    on: {approved: task}
+    each: task
+    repo: "{task.repo}"
+    skill: implement
+    makes: change
+    approve: {by: step:review}
+    retries: 2
+    escalate: po
+
+  review:
+    on: {made: change}
+    each: change
+    repo: "{change.repo}"
+    skill: code-review
+    reviews: change
+    model: deep
