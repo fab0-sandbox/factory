@@ -46,3 +46,4 @@ types:
       go:
         on: { status: Ready }
         do: github.nothing
+# T2.22 re-sync
