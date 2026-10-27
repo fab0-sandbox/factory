@@ -1,49 +1,35 @@
 # yaml-language-server: $schema=https://schema.fab0.dev/pipeline.v1.json
-# fab0-dev/fab0 T2.21 (AC2.18): three documents, the third one invalid.
+# fab0-dev/fab0 stage 3 (spec section 5): the dev checks' pipeline, the same document as fab0-sandbox/factory's.
 version: 1
-name: triage
+name: record-flow
+description: A Feature planned, its Stories done by their assignees, finished when every Story is Done.
 people:
   po: [eugenefurs]
 status:
-  labels: [Todo, Ready, Done]
+  labels: [Todo, Ready, InProgress, Done]
   end: Done
-start: { type: Bug, status: Ready, by: [po] }
-escalate: [po]
-types:
-  Bug:
-    steps:
-      close:
-        on: { status: Ready }
-        do: github.label
-        label: Done
----
-version: 1
-name: chores
-people:
-  po: [eugenefurs]
-status:
-  labels: [Todo, Ready, Done]
-  end: Done
-start: { type: Task, status: Ready, by: [po] }
-escalate: [po]
-types:
-  Task:
-    steps:
-      finish:
-        on: { status: Ready }
-        do: github.label
-        label: Done
----
-version: 1
-name: broken
-status:
-  labels: [Todo, Done]
-  end: Finished
 start: { type: Feature, status: Ready, by: [po] }
+escalate: [po]
+limits: { act_timeout: 2m, resync_interval: 15m }
 types:
   Feature:
     steps:
-      go:
+      plan:
         on: { status: Ready }
-        do: github.nothing
-# T2.22 re-sync
+        do: agent.record
+        skill: plan-feature
+        approve: none
+        on_done: [{ label: InProgress }]
+      finish:
+        on: { children: { type: Story, all: Done } }
+        do: github.label
+        label: Done
+  Story:
+    parent: Feature
+    steps:
+      do:
+        on: { status: Ready }
+        do: agent.record
+        skill: do-story
+        approve: none
+        on_done: [{ label: Done }]
