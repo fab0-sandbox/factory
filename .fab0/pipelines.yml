@@ -61,3 +61,47 @@ types:
         limits: { timeout: 30m }
         approve: { human: [team], via: review }
         on_done: [{ label: Specced }]
+---
+# fab0-dev/fab0 stage 6 (spec section 5): the full-flow checks' pipeline, recipes/full-flow.yml. Its own status
+# labels keep it off record-flow's and routine-flow's Features (D.8).
+version: 1
+name: full-flow
+description: A Feature planned into Stories under a budget; each Story specced, reviewed and planned in order, behind its blockers.
+people: { po: [eugenefurs], team: [eugenefurs, jev-fab0] }
+status: { labels: [Queue, Go, Doing, Shipped], end: Shipped }
+start: { type: Feature, status: Go, by: [po] }
+escalate: [po]
+limits: { settle: 2m, act_timeout: 5m, launch_timeout: 10m, stall_timeout: 20m, items: 8, generations: 1 }
+types:
+  Feature:
+    steps:
+      plan:
+        on: { status: Go }
+        do: agent.record
+        skill: plan-feature
+        makes: issues
+        spawn: { type: Story, budget: 2 }
+        approve: { human: [po], via: command }
+      ship: { on: { children: { type: Story, all: Shipped } }, do: github.label, label: Shipped }
+  Story:
+    parent: Feature
+    steps:
+      spec:
+        on: { status: Go }
+        gates: [{ dependencies: resolved }]
+        do: agent.routine
+        skill: spec-story
+        model: small
+        makes: pr
+        kind: spec
+        approve: auto
+        limits: { timeout: 30m, retries: 0, revisions: 1 }
+      review-spec: { reviews: spec, do: agent.routine, skill: review-spec, model: small }
+      plan:
+        on: { status: Go }
+        gates: [{ after: spec }, { command: /plan, by: [po] }]
+        do: agent.record
+        skill: plan-story
+        approve: none
+        limits: { retries: 0 }
+        on_done: [{ label: Shipped }]
