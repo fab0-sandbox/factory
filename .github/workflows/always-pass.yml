@@ -1,0 +1,13 @@
+# The required status check for fab0 T6.30's up-to-date rule check (AC6.23). It always passes, and is removed with
+# the rule once the check is done.
+name: always-pass
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions: {}
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo pass
