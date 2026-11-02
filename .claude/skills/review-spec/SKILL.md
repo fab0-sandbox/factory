@@ -45,8 +45,8 @@ Check also that the criteria cover what the Story asks for, and nothing outside 
 - `reject`: the pull request is not a spec of this Story (another Story, other files, no file), so a revision
   can't fix it. Findings say why.
 
-Report it with `complete_step` and `outputs`
-`{ "verdict": { "verdict": "approve" | "changes" | "reject", "findings": "<markdown>" } }`.
+Report it with `complete_step` and the outputs
+`{ "verdict": "approve" | "changes" | "reject", "findings": "<markdown>" }`, with no other key.
 
 ## Rules
 
